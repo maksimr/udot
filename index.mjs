@@ -1,4 +1,5 @@
-#!/usr/bin/env node
+#!/usr/bin/env bash
+":" //# comment; exec /usr/bin/env node --input-type=module - "$@" < "$0"
 
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { execSync } from 'node:child_process';
@@ -10,12 +11,25 @@ const contextProvider = new AsyncLocalStorage();
 
 if (
   !import.meta.url ||
+  // Allow to use esm as a stand alone script without extension and package.json
+  // https://stackoverflow.com/questions/48179714/how-can-an-es6-module-be-run-as-a-script-in-node
+  import.meta.url.indexOf('[eval') !== -1 ||
   (
     import.meta.url &&
     import.meta.url.startsWith('file:') &&
     fileURLToPath(import.meta.url) === process.argv[1])
 ) {
-  exec();
+  exec().catch((error) => {
+    if (error.message) {
+      console.error(bold(error.message));
+      if (error.stack) {
+        console.error();
+        console.error(error.stack);
+      }
+    } else {
+      console.error(error);
+    }
+  });
 }
 
 export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
@@ -86,7 +100,7 @@ async function apply(/**@type {string}*/baseDir, /**@type {string}*/homeDir) {
       const target = path.join(homeDir, path.relative(baseDir, source));
 
       if (file.isFile() && !fs.existsSync(target)) {
-        console.log(`+ ${target} -> ${source}`);
+        console.log(`${green('+')} ${target} -> ${source}`);
         mutating(fs.symlinkSync)(source, target);
       } else if (file.isDirectory()) {
         if (!fs.existsSync(target)) {
@@ -117,9 +131,9 @@ async function ls(/**@type {string}*/baseDir, /**@type {string}*/homeDir) {
       const target = path.join(homeDir, path.relative(baseDir, source));
       if (file.isFile() && fs.existsSync(target)) {
         if (isSymbolicLinkFrom(target, baseDir)) {
-          console.log(`⊙ ${target} -> ${source}`);
+          console.log(`${green('⊙')} ${target} -> ${source}`);
         } else {
-          console.log(`○ ${target}`);
+          console.log(`${yellow('○')} ${target}`);
         }
       } else if (file.isDirectory()) {
         queue.push(source);
@@ -137,6 +151,7 @@ async function restore(/**@type {string}*/homeDir, /**@type {string}*/baseDir) {
       const source = path.join(dir, file.name);
       const target = path.join(homeDir, path.relative(baseDir, source));
       if (file.isFile() && isSymbolicLinkFrom(target, baseDir)) {
+        console.log(`${red('-')} ${target}`);
         mutating(fs.unlinkSync)(target);
       } else if (file.isDirectory()) {
         queue.push(source);
@@ -152,7 +167,9 @@ async function restore(/**@type {string}*/homeDir, /**@type {string}*/baseDir) {
 
 async function use(/**@type {string}*/url, /**@type {string}*/baseDir, /**@type {string}*/homeDir) {
   try {
-    mutating(execSync)(`git clone ${url} ${baseDir}`);
+    if (!fs.existsSync(baseDir)) {
+      mutating(execSync)(`git clone ${url} ${baseDir}`);
+    }
     await apply(baseDir, homeDir);
   } catch (e) {
     console.error(e.message || e);
@@ -236,6 +253,22 @@ function mutating(fn) {
 
     return fn(...args);
   };
+}
+
+function bold(/**@type {string}*/str) {
+  return `\u001b[1m${str}\u001b[0m`;
+}
+
+function red(/**@type {string}*/str) {
+  return `\x1b[31m${str}\x1b[0m`;
+}
+
+function green(/**@type {string}*/str) {
+  return `\x1b[32m${str}\x1b[0m`;
+}
+
+function yellow(/**@type {string}*/str) {
+  return `\x1b[33m${str}\x1b[0m`;
 }
 
 /**

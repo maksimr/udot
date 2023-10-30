@@ -2,8 +2,9 @@
 
 Install bin locally using curl
 ```bash
-curl -o ~/local/bin/udot https://raw.github.com/maksimr/udot/master/index.mjs \
-  && chmod +x ~/local/bin/udot
+curl -s -L https://raw.github.com/maksimr/udot/master/index.mjs \
+  --output ~/.local/bin/udot \
+  && chmod +x ~/.local/bin/udot
 ```
 
 Run bin without installation
