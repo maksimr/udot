@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
