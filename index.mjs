@@ -5,6 +5,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const contextProvider = new AsyncLocalStorage();
@@ -34,11 +35,14 @@ if (
 
 export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
   const { _: [command, url], ...params } = parseArgv(argv);
-  const baseDir = params.baseDir;
-  const homeDir = params.homeDir || process.env.HOME || process.env.USERPROFILE;
+  let baseDir = params.baseDir;
+  let homeDir = params.homeDir || process.env.HOME || process.env.USERPROFILE;
 
   if (!baseDir) throw new Error('--base-dir is required');
   if (!homeDir) throw new Error('--home-dir is required');
+
+  baseDir = tildeExpansion(baseDir);
+  homeDir = tildeExpansion(homeDir);
 
   await contextProvider.run({
     dry: params.dry
@@ -253,6 +257,14 @@ function mutating(fn) {
 
     return fn(...args);
   };
+}
+
+// https://github.com/nodejs/node/issues/684
+function tildeExpansion(/**@type {string}*/str) {
+  if (str.startsWith('~')) {
+    return str.replace('~', os.homedir());
+  }
+  return str;
 }
 
 function bold(/**@type {string}*/str) {
