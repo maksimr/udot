@@ -115,7 +115,7 @@ describe('main', () => {
       'dest': {}
     });
 
-    await exec('apply --dry --base-dir=src --home-dir=dest'.split(' '));
+    await exec('apply --dry-run --base-dir=src --home-dir=dest'.split(' '));
 
     assert.deepEqual(readdirSync('dest'), []);
   });
