@@ -9,14 +9,14 @@ Overall, Udot is a simple and easy-to-use tool for managing dotfiles that offers
 
 How to install Udot on your system
 ```bash
-curl -s -L https://raw.github.com/maksimr/udot/master/index.mjs \
+curl -s -L https://raw.github.com/maksimr/udot/main/index.mjs \
   --output ~/.local/bin/udot \
   && chmod +x ~/.local/bin/udot
 ```
 
 run Udot without installation
 ```bash
-curl -s -L https://raw.github.com/maksimr/udot/master/index.mjs | \
+curl -s -L https://raw.github.com/maksimr/udot/main/index.mjs | \
   node --input-type=module - \
   --base-dir=/tmp/dotfiles \
   --home-dir=/tmp/root \

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-":" //# comment; exec /usr/bin/env node --input-type=module - "$@" < "$0"
+":" //# comment; exec /usr/bin/env node --input-type=module - --module-path="$0" "$@" < "$0"
 
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { execSync } from 'node:child_process';
@@ -45,7 +45,8 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
   homeDir = tildeExpansion(homeDir);
 
   await contextProvider.run({
-    dry: params.dry
+    dry: params.dry,
+    modulePath: params.modulePath
   }, async () => {
     if (command === 'apply') {
       await apply(baseDir, homeDir);
@@ -57,15 +58,19 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
       await restore(homeDir, baseDir);
     } else if (command === 'update') {
       await update(baseDir, homeDir);
+    } else if (command === 'upgrade') {
+      await upgrade(params.moduleUrl);
     } else {
+      const udot = path.basename(getCurrentContext().modulePath || '<dot>');
       console.log(`
-      Usage: <dot> <command> [options]
+      Usage: ${udot} <command> [options]
 
-        <dot> apply     --base-dir=<path> --home-dir=<path>
-        <dot> ls        --base-dir=<path> --home-dir=<path>
-        <dot> restore   --base-dir=<path> --home-dir=<path>
-        <dot> update    --base-dir=<path> --home-dir=<path>
-        <dot> use <url> --base-dir=<path> --home-dir=<path>
+        ${udot} apply     --base-dir=<path> --home-dir=<path>
+        ${udot} ls        --base-dir=<path> --home-dir=<path>
+        ${udot} restore   --base-dir=<path> --home-dir=<path>
+        ${udot} update    --base-dir=<path> --home-dir=<path>
+        ${udot} use <url> --base-dir=<path> --home-dir=<path>
+        ${udot} upgrade   --module-path=<path> --module-url=<url>
       
       Commands:
         apply     Create symlinks from <base-dir> to <home-dir>
@@ -73,16 +78,32 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
         restore   Remove created symlinks
         update    Save changes and sync with remote repository
         use       Clone repostory from <url> to <base-dir> and apply
+        upgrade   Upgrade ${udot} to the latest version
 
       Options:
-        --base-dir  Source directory
-        --home-dir  Destination directory
-        --dry       Don't make real modification, just print what will be done
+        --base-dir     Source directory
+        --home-dir     Destination directory
+        --module-path  Path to ${udot} module
+        --module-url   URL to ${udot} module
+        --dry          Don't make real modification, just print what will be done
 
       ${process.version}
     `)
     }
   });
+}
+
+async function upgrade(url = 'https://raw.github.com/maksimr/udot/main/index.mjs') {
+  const modulePath = (import.meta.url && fileURLToPath(import.meta.url)) || getCurrentContext().modulePath;
+
+  if (!modulePath) {
+    return;
+  }
+
+  mutating(execSync)(`curl -sL ${url} --output ${modulePath}`);
+  mutating(execSync)(`chmod +x ${modulePath}`);
+
+  console.log(`⚡️ ${modulePath} upgraded to ${url}`);
 }
 
 async function apply(/**@type {string}*/baseDir, /**@type {string}*/homeDir) {
