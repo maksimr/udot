@@ -1,0 +1,14 @@
+{
+  "name": "udot",
+  "version": "0.0.1",
+  "scripts": {
+    "test": "node --test",
+    "test:watch": "node --test --watch index.test.mjs",
+    "test:type": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.5.8",
+    "mock-fs": "^5.2.0",
+    "typescript": "^5.2.2"
+  }
+}
