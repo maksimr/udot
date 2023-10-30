@@ -45,7 +45,7 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
   homeDir = tildeExpansion(homeDir);
 
   await contextProvider.run({
-    dry: params.dry,
+    dryRun: params.dryRun,
     modulePath: params.modulePath
   }, async () => {
     if (command === 'apply') {
@@ -85,7 +85,7 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
         --home-dir     Destination directory
         --module-path  Path to ${udot} module
         --module-url   URL to ${udot} module
-        --dry          Don't make real modification, just print what will be done
+        --dry-run      Don't make real modification, just print what will be done
 
       ${process.version}
     `)
@@ -267,7 +267,7 @@ function getCurrentContext() {
 }
 
 function isDryrun() {
-  return Boolean(getCurrentContext().dry);
+  return Boolean(getCurrentContext().dryRun);
 }
 
 function mutating(fn) {
