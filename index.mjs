@@ -35,7 +35,7 @@ if (
 
 export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
   const { _: [command, url], ...params } = parseArgv(argv);
-  let baseDir = params.baseDir;
+  let baseDir = params.baseDir || path.join(os.homedir(), '.dotfiles');
   let homeDir = params.homeDir || process.env.HOME || process.env.USERPROFILE;
 
   if (!baseDir) throw new Error('--base-dir is required');
