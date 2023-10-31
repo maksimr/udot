@@ -7,14 +7,24 @@ Udot is hosted on GitHub and can be installed using curl on the user's operating
 
 Overall, Udot is a simple and easy-to-use tool for managing dotfiles that offers unique features for preserving directory structures and managing links and copies of files.
 
-How to install Udot on your system
+How to install udot on your system using `npx`
+```
+npx github:maksimr/udot upgrade --module-path=~/.local/bin/udot
+```
+
+or using `curl`
 ```bash
 curl -s -L https://raw.github.com/maksimr/udot/main/index.mjs \
   --output ~/.local/bin/udot \
   && chmod +x ~/.local/bin/udot
 ```
 
-run Udot without installation
+run Udot without installation using `npx`
+```
+npx github:maksimr/udot ls
+```
+
+or `curl`
 ```bash
 curl -s -L https://raw.github.com/maksimr/udot/main/index.mjs | \
   node --input-type=module - \
