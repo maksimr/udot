@@ -17,7 +17,7 @@ Overall, Udot is a simple and easy-to-use tool for managing dotfiles that offers
 
 How to install udot on your system using `npx`
 ```
-npx github:maksimr/udot upgrade --module-path=~/.local/bin/udot
+npx github:maksimr/udot install --module-path=~/.local/bin/udot
 ```
 
 or using `curl`

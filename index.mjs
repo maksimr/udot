@@ -58,34 +58,34 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
       await restore(homeDir, baseDir, url);
     } else if (command === 'update') {
       await update(baseDir, homeDir);
-    } else if (command === 'upgrade') {
-      await upgrade(params.moduleUrl);
+    } else if (command === 'install') {
+      await install(params.moduleUrl);
     } else {
-      const udot = path.basename(getCurrentContext().modulePath || '<dot>');
+      const cmd = path.basename(getCurrentContext().modulePath || '<dot>');
       console.log(supertrim(`
-      Usage: ${udot} <command> [options]
+      Usage: ${cmd} <command> [options]
 
-        ${udot} apply          --base-dir=<path> --home-dir=<path>
-        ${udot} ls             --base-dir=<path> --home-dir=<path>
-        ${udot} restore        --base-dir=<path> --home-dir=<path>
-        ${udot} restore <path> --base-dir=<path> --home-dir=<path>
-        ${udot} update         --base-dir=<path> --home-dir=<path>
-        ${udot} use <url>      --base-dir=<path> --home-dir=<path>
-        ${udot} upgrade        --module-path=<path> --module-url=<url>
+        ${cmd} apply          --base-dir=<path> --home-dir=<path>
+        ${cmd} ls             --base-dir=<path> --home-dir=<path>
+        ${cmd} restore        --base-dir=<path> --home-dir=<path>
+        ${cmd} restore <path> --base-dir=<path> --home-dir=<path>
+        ${cmd} update         --base-dir=<path> --home-dir=<path>
+        ${cmd} use <url>      --base-dir=<path> --home-dir=<path>
+        ${cmd} install        --module-path=<path> --module-url=<url>
       
-      Commands:
+      Commands
         apply     Create symlinks from <base-dir> to <home-dir>
         ls        List of created symlinks
         restore   Remove created symlinks
         update    Save changes and sync with remote repository
         use       Clone repostory from <url> to <base-dir> and apply
-        upgrade   Upgrade ${udot} to the latest version
+        install   Install or upgrade "${cmd}" to the latest version
 
-      Options:
+      Options
         --base-dir     Source directory. By default "~/.dotfiles"
         --home-dir     Destination directory. By default "~"
-        --module-path  Path to ${udot} module
-        --module-url   URL to ${udot} module
+        --module-path  Path to "${cmd}" module
+        --module-url   URL to "${cmd}" module
         --dry-run      Don't make real modification, just print what will be done
 
       ${process.version} ${process.platform} ${process.arch} ${process.env.SHELL}
@@ -94,7 +94,7 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
   });
 }
 
-async function upgrade(url = 'https://raw.github.com/maksimr/udot/main/index.mjs') {
+async function install(url = 'https://raw.github.com/maksimr/udot/main/index.mjs') {
   const modulePath = (import.meta.url && fileURLToPath(import.meta.url)) || getCurrentContext().modulePath;
 
   if (!modulePath) {
@@ -104,7 +104,7 @@ async function upgrade(url = 'https://raw.github.com/maksimr/udot/main/index.mjs
   mutating(execSync)(`curl -sL ${url} --output ${modulePath}`);
   mutating(execSync)(`chmod +x ${modulePath}`);
 
-  console.log(`⚡️ ${modulePath} upgraded to ${url}`);
+  console.log(`${green('✓')} sucessfully installed "${modulePath}" from "${url}"`);
 }
 
 async function apply(/**@type {string}*/baseDir, /**@type {string}*/homeDir) {
