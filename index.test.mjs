@@ -137,4 +137,19 @@ describe('main', () => {
 
     assert.deepEqual(readdirSync('dest'), []);
   });
-})
+
+  it('should remove specific symlinks', async () => {
+    mock({
+      'src': {
+        'file1.txt': 'file1',
+        'file2.txt': 'file2'
+      },
+      'dest': {}
+    });
+
+    await exec('apply --base-dir=src --home-dir=dest'.split(' '));
+    await exec('restore dest/file2.txt --base-dir=src --home-dir=dest'.split(' '));
+
+    assert.deepEqual(readdirSync('dest'), ['file1.txt']);
+  });
+});

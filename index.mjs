@@ -55,7 +55,7 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
     } else if (command === 'ls') {
       await ls(baseDir, homeDir);
     } else if (command === 'restore') {
-      await restore(homeDir, baseDir);
+      await restore(homeDir, baseDir, url);
     } else if (command === 'update') {
       await update(baseDir, homeDir);
     } else if (command === 'upgrade') {
@@ -65,12 +65,13 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
       console.log(`
       Usage: ${udot} <command> [options]
 
-        ${udot} apply     --base-dir=<path> --home-dir=<path>
-        ${udot} ls        --base-dir=<path> --home-dir=<path>
-        ${udot} restore   --base-dir=<path> --home-dir=<path>
-        ${udot} update    --base-dir=<path> --home-dir=<path>
-        ${udot} use <url> --base-dir=<path> --home-dir=<path>
-        ${udot} upgrade   --module-path=<path> --module-url=<url>
+        ${udot} apply          --base-dir=<path> --home-dir=<path>
+        ${udot} ls             --base-dir=<path> --home-dir=<path>
+        ${udot} restore        --base-dir=<path> --home-dir=<path>
+        ${udot} restore <path> --base-dir=<path> --home-dir=<path>
+        ${udot} update         --base-dir=<path> --home-dir=<path>
+        ${udot} use <url>      --base-dir=<path> --home-dir=<path>
+        ${udot} upgrade        --module-path=<path> --module-url=<url>
       
       Commands:
         apply     Create symlinks from <base-dir> to <home-dir>
@@ -81,8 +82,8 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
         upgrade   Upgrade ${udot} to the latest version
 
       Options:
-        --base-dir     Source directory
-        --home-dir     Destination directory
+        --base-dir     Source directory. By default "~/.dotfiles"
+        --home-dir     Destination directory. By default "~"
         --module-path  Path to ${udot} module
         --module-url   URL to ${udot} module
         --dry-run      Don't make real modification, just print what will be done
@@ -167,8 +168,27 @@ async function ls(/**@type {string}*/baseDir, /**@type {string}*/homeDir) {
   }
 }
 
-async function restore(/**@type {string}*/homeDir, /**@type {string}*/baseDir) {
-  const queue = [baseDir];
+async function restore(/**@type {string}*/homeDir, /**@type {string}*/baseDir, /**@type {string|undefined}*/filePath) {
+  const queue = [];
+
+  if (filePath) {
+    const file = fs.lstatSync(filePath);
+    if (file.isSymbolicLink()) {
+      const target = filePath;
+      console.log(`${red('-')} ${target}`);
+      mutating(fs.unlinkSync)(target);
+      return;
+    }
+
+    if (!file.isDirectory()) {
+      return;
+    }
+
+    queue.push(filePath);
+  } else {
+    queue.push(baseDir);
+  }
+
   while (queue.length > 0) {
     const dir = queue.shift();
     const files = fs.readdirSync(dir, { withFileTypes: true });
