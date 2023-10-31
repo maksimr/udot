@@ -62,7 +62,7 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
       await upgrade(params.moduleUrl);
     } else {
       const udot = path.basename(getCurrentContext().modulePath || '<dot>');
-      console.log(`
+      console.log(supertrim(`
       Usage: ${udot} <command> [options]
 
         ${udot} apply          --base-dir=<path> --home-dir=<path>
@@ -88,8 +88,8 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
         --module-url   URL to ${udot} module
         --dry-run      Don't make real modification, just print what will be done
 
-      ${process.version}
-    `)
+      ${process.version} ${process.platform} ${process.arch} ${process.env.SHELL}
+    `))
     }
   });
 }
@@ -298,6 +298,15 @@ function mutating(fn) {
 
     return fn(...args);
   };
+}
+
+function supertrim(/**@type {string}*/str) {
+  str = str.replace(/^\n+/, '');
+  const indent = str.match(/^\s+/);
+  if (indent) {
+    str = str.replace(new RegExp(`^${indent[0]}`, 'gm'), '');
+  }
+  return str.trimEnd();
 }
 
 // https://github.com/nodejs/node/issues/684
