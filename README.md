@@ -2,6 +2,14 @@
 
 ![Test](https://github.com/maksimr/udot/workflows/Test/badge.svg)
 
+```bash
+npx github:maksimr/udot --help
+```
+
+```bash
+npm x -- github:maksimr/udot --help
+```
+
 Udot is a simple and opinionated dotfiles manager that allows users to manage their dotfiles in a single directory. It is designed to keep track of what's missing and what's different, and it can manage links and copies of files. Udot is unique in the way it manages links and copies, as it preserves the entire directory structure leading to a file and only considers the file itself as managed. This allows managed and unmanaged files to live next to each other without needing to specify complicated ignore rules.
 Udot is hosted on GitHub and can be installed using curl on the user's operating system, or running even without local installation.
 
