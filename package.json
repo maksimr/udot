@@ -1,6 +1,11 @@
 {
   "name": "udot",
   "version": "0.0.1",
+  "type": "module",
+  "main": "index.mjs",
+  "bin": {
+    "udot": "./index.mjs"
+  },
   "scripts": {
     "test": "node --test",
     "test:watch": "node --test --watch index.test.mjs",
