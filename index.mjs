@@ -108,75 +108,76 @@ async function install(url = 'https://raw.github.com/maksimr/udot/main/index.mjs
 }
 
 async function apply(/**@type {string}*/baseDir, /**@type {string}*/homeDir) {
-  const queue = [baseDir];
-
-  if (!fs.existsSync(homeDir)) {
-    mutating(fs.mkdirSync)(homeDir);
+  if (!await isExists(homeDir)) {
+    await mutating(fs.promises.mkdir)(homeDir);
   }
 
-  while (queue.length > 0) {
-    const dir = queue.shift();
-    const files = fs.readdirSync(dir, { withFileTypes: true });
-    for (const file of files) {
-      if (isIgnored(file.name)) {
-        continue;
-      }
+  await processDir(baseDir);
 
-      const source = path.join(dir, file.name);
-      const target = path.join(homeDir, path.relative(baseDir, source));
-
-      if (file.isFile() && !fs.existsSync(target)) {
-        console.log(`${green('+')} ${target} -> ${source}`);
-        mutating(fs.symlinkSync)(source, target);
-      } else if (file.isDirectory()) {
-        if (!fs.existsSync(target)) {
-          mutating(fs.mkdirSync)(target);
+  async function processDir(/**@type {string}*/dir) {
+    const files = await fs.promises.readdir(dir, { withFileTypes: true });
+    await Promise.all(
+      files.map(async (file) => {
+        if (isIgnored(file.name)) {
+          return;
         }
-        queue.push(source);
-      }
-    }
+
+        const source = path.join(dir, file.name);
+        const target = path.join(homeDir, path.relative(baseDir, source));
+
+        if (file.isFile() && !(await isExists(target))) {
+          console.log(`${green('+')} ${target} -> ${source}`);
+          await mutating(fs.promises.symlink)(source, target);
+        } else if (file.isDirectory()) {
+          if (!(await isExists(target))) {
+            await mutating(fs.promises.mkdir)(target);
+          }
+          await processDir(source);
+        }
+      })
+    );
   }
 }
 
 async function ls(/**@type {string}*/baseDir, /**@type {string}*/homeDir) {
-  const queue = [baseDir];
-
-  if (!fs.existsSync(homeDir) || !fs.existsSync(baseDir)) {
+  if (!await isExists(homeDir) || !await isExists(baseDir)) {
     return;
   }
 
-  while (queue.length > 0) {
-    const dir = queue.shift();
-    const files = fs.readdirSync(dir, { withFileTypes: true });
-    for (const file of files) {
-      if (isIgnored(file.name)) {
-        continue;
-      }
+  await processDir(baseDir);
 
-      const source = path.join(dir, file.name);
-      const target = path.join(homeDir, path.relative(baseDir, source));
-      if (file.isFile() && fs.existsSync(target)) {
-        if (isSymbolicLinkFrom(target, baseDir)) {
-          console.log(`${green('⊙')} ${target} -> ${source}`);
-        } else {
-          console.log(`${yellow('○')} ${target}`);
+  async function processDir(/**@type {string}*/dir) {
+    const files = await fs.promises.readdir(dir, { withFileTypes: true });
+    await Promise.all(
+      files.map(async (file) => {
+        if (isIgnored(file.name)) {
+          return;
         }
-      } else if (file.isDirectory()) {
-        queue.push(source);
-      }
-    }
+
+        const source = path.join(dir, file.name);
+        const target = path.join(homeDir, path.relative(baseDir, source));
+
+        if (file.isFile() && await isExists(target)) {
+          if (await isSymbolicLinkFrom(target, baseDir)) {
+            console.log(`${green('⊙')} ${target} -> ${source}`);
+          } else {
+            console.log(`${yellow('○')} ${target}`);
+          }
+        } else if (file.isDirectory()) {
+          await processDir(source);
+        }
+      })
+    );
   }
 }
 
 async function restore(/**@type {string}*/homeDir, /**@type {string}*/baseDir, /**@type {string|undefined}*/filePath) {
-  const queue = [];
-
   if (filePath) {
-    const file = fs.lstatSync(filePath);
+    const file = await fs.promises.lstat(filePath);
     if (file.isSymbolicLink()) {
       const target = filePath;
       console.log(`${red('-')} ${target}`);
-      mutating(fs.unlinkSync)(target);
+      await mutating(fs.promises.unlink)(target);
       return;
     }
 
@@ -184,28 +185,29 @@ async function restore(/**@type {string}*/homeDir, /**@type {string}*/baseDir, /
       return;
     }
 
-    queue.push(filePath);
+    await processDir(filePath);
   } else {
-    queue.push(baseDir);
+    await processDir(baseDir);
   }
 
-  while (queue.length > 0) {
-    const dir = queue.shift();
-    const files = fs.readdirSync(dir, { withFileTypes: true });
-    for (const file of files) {
-      const source = path.join(dir, file.name);
-      const target = path.join(homeDir, path.relative(baseDir, source));
-      if (file.isFile() && isSymbolicLinkFrom(target, baseDir)) {
-        console.log(`${red('-')} ${target}`);
-        mutating(fs.unlinkSync)(target);
-      } else if (file.isDirectory()) {
-        queue.push(source);
-      }
-    }
+  async function processDir(/**@type {string}*/dir) {
+    const files = await fs.promises.readdir(dir, { withFileTypes: true });
+    await Promise.all(
+      files.map(async (file) => {
+        const source = path.join(dir, file.name);
+        const target = path.join(homeDir, path.relative(baseDir, source));
+        if (file.isFile() && await isSymbolicLinkFrom(target, baseDir)) {
+          console.log(`${red('-')} ${target}`);
+          await mutating(fs.promises.unlink)(target);
+        } else if (file.isDirectory()) {
+          await processDir(source);
+        }
+      })
+    );
 
     const targetDir = path.join(homeDir, path.relative(baseDir, dir));
-    if (fs.existsSync(targetDir) && fs.readdirSync(targetDir).length === 0 && targetDir !== homeDir) {
-      mutating(fs.rmdirSync)(targetDir);
+    if (await isExists(targetDir) && (await fs.promises.readdir(targetDir)).length === 0 && targetDir !== homeDir) {
+      await mutating(fs.promises.rmdir)(targetDir);
     }
   }
 }
@@ -270,13 +272,21 @@ function isIgnored(/**@type {string}*/name) {
   ].includes(name);
 }
 
-function isSymbolicLinkFrom(/**@type {string}*/target, /**@type {string}*/baseDir) {
-  return isSymbolicLinkExists(target) && fs.readlinkSync(target).startsWith(baseDir);
+function isExists(/**@type {string}*/fpath) {
+  return fs.promises.access(fpath)
+    .then(() => true)
+    .catch(() => false);
 }
 
-function isSymbolicLinkExists(/**@type {string}*/target) {
+async function isSymbolicLinkFrom(/**@type {string}*/target, /**@type {string}*/baseDir) {
+  return await isSymbolicLinkExists(target) &&
+    (await fs.promises.readlink(target)).startsWith(baseDir);
+}
+
+async function isSymbolicLinkExists(/**@type {string}*/target) {
   try {
-    return fs.lstatSync(target).isSymbolicLink();
+    const result = await fs.promises.lstat(target);
+    return result.isSymbolicLink();
   } catch (_) {
     return false;
   }
