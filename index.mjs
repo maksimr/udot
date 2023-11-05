@@ -322,15 +322,19 @@ function bold(/**@type {string}*/str) {
 }
 
 function red(/**@type {string}*/str) {
-  return `\x1b[31m${str}\x1b[0m`;
+  return colorText(str, '31');
 }
 
 function green(/**@type {string}*/str) {
-  return `\x1b[32m${str}\x1b[0m`;
+  return colorText(str, '32');
 }
 
 function yellow(/**@type {string}*/str) {
-  return `\x1b[33m${str}\x1b[0m`;
+  return colorText(str, '33');
+}
+
+function colorText(/**@type {string}*/str, /**@type {string}*/color) {
+  return `\x1b[${color}m${str}\x1b[0m`;
 }
 
 /**
