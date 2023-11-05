@@ -46,7 +46,8 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
 
   await contextProvider.run({
     dryRun: params.dryRun,
-    modulePath: params.modulePath
+    modulePath: params.modulePath,
+    exclude: [].concat(params.exclude || [])
   }, async () => {
     if (command === 'apply') {
       await apply(baseDir, homeDir);
@@ -65,12 +66,12 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
       console.log(supertrim(`
       Usage: ${cmd} <command> [options]
 
-        ${cmd} apply          --base-dir=<path> --home-dir=<path>
+        ${cmd} apply          --base-dir=<path> --home-dir=<path> [--exclude=<path1> --exclude=<path2>]
         ${cmd} ls             --base-dir=<path> --home-dir=<path>
         ${cmd} restore        --base-dir=<path> --home-dir=<path>
         ${cmd} restore <path> --base-dir=<path> --home-dir=<path>
         ${cmd} update         --base-dir=<path> --home-dir=<path>
-        ${cmd} use <url>      --base-dir=<path> --home-dir=<path>
+        ${cmd} use <url>      --base-dir=<path> --home-dir=<path> [--exclude=<path1> --exclude=<path2>]
         ${cmd} install        --module-path=<path> --module-url=<url>
 
       Commands
@@ -87,6 +88,7 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
         --module-path  Path to "${cmd}" module
         --module-url   URL to "${cmd}" module
         --dry-run      Don't make real modification, just print what will be done
+        --exclude      Exclude files or directories from processing
 
       ${process.version} ${process.platform} ${process.arch} ${process.env.SHELL}
     `))
@@ -112,6 +114,7 @@ async function apply(/**@type {string}*/baseDir, /**@type {string}*/homeDir) {
     await mutating(fs.promises.mkdir)(homeDir);
   }
 
+  const isIgnored = await getIgnoreFunction(baseDir);
   await processDir(baseDir);
 
   async function processDir(/**@type {string}*/dir) {
@@ -144,6 +147,7 @@ async function ls(/**@type {string}*/baseDir, /**@type {string}*/homeDir) {
     return;
   }
 
+  const isIgnored = await getIgnoreFunction(baseDir);
   await processDir(baseDir);
 
   async function processDir(/**@type {string}*/dir) {
@@ -258,18 +262,36 @@ async function pull(/**@type {string}*/cwd) {
   }
 }
 
-function isIgnored(/**@type {string}*/name) {
-  return [
-    '.git',
-    '.gitignore',
-    '.vscode',
-    '.DS_Store',
-    'README.md',
-    'node_modules',
-    'package-lock.json',
-    'package.json',
-    'yarn.lock'
-  ].includes(name);
+async function getIgnoreFunction(/**@type {string}*/baseDir) {
+  const ignoreFilePath = path.join(baseDir, '.dotignore');
+  const ignorePatterns = await isExists(ignoreFilePath) ?
+    (await fs.promises.readFile(ignoreFilePath, 'utf8'))
+      .split('\n').map((line) => line.trim()).filter((line) => line !== '') :
+    [
+      '.gitignore',
+      '.vscode',
+      '.DS_Store',
+      'node_modules',
+      'package-lock.json',
+      'package.json'
+    ];
+
+  const exclude = getCurrentContext().exclude;
+  ignorePatterns.push('.git');
+  ignorePatterns.push('README.md');
+  ignorePatterns.push(...exclude);
+
+  const ignoreRegExps = ignorePatterns.map((ignorePatter) => {
+    const pattern = ignorePatter.replace(/\/$/, '');
+    const regexp = new RegExp(`^${pattern.replace(/\./g, '\\.').replace(/\*/g, '.*')}$`);
+    return regexp;
+  });
+
+  return (/**@type {string}*/name) => {
+    return ignoreRegExps.some((regexp) => {
+      return regexp.test(name);
+    });
+  }
 }
 
 function isExists(/**@type {string}*/fpath) {
@@ -358,18 +380,24 @@ function parseArgv(/**@type {string[]}*/argv) {
   const toCamelCase = (/**@type {string}*/str) => {
     return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
   }
+  const addOption = (/**@type {string}*/key, /**@type {string}*/value) => {
+    const camelCaseKey = toCamelCase(key);
+    if (parsed[camelCaseKey] && value) {
+      parsed[camelCaseKey] = Array.isArray(parsed[camelCaseKey]) ?
+        [...parsed[camelCaseKey], value || true] :
+        [parsed[camelCaseKey], value || true];
+    } else {
+      parsed[camelCaseKey] = value || true;
+    }
+  }
 
   for (const arg of argv) {
     if (arg.startsWith('--')) {
       const [key, value] = arg.slice(2).split('=');
-      const camelCaseKey = toCamelCase(key);
-
-      parsed[camelCaseKey] = value || true;
+      addOption(key, value);
     } else if (arg.startsWith('-')) {
       const [key, value] = arg.slice(1).split('=');
-      const camelCaseKey = toCamelCase(key);
-
-      parsed[camelCaseKey] = value || true;
+      addOption(key, value);
     } else {
       parsed._.push(arg);
     }

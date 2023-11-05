@@ -138,6 +138,62 @@ describe('main', () => {
     assert.deepEqual(readdirSync('dest'), []);
   });
 
+  it('should ignore files from .dotignore', async () => {
+    mock({
+      'src': {
+        '.dotignore': 'bootstrap.sh\nnode_modules\n.dotignore',
+        'bootstrap.sh': 'file2',
+        'foo': {
+          'file1.txt': 'file1'
+        },
+        'node_modules': {
+          'file2.txt': 'file2'
+        }
+      },
+      'dest': {}
+    });
+
+    await exec('apply --base-dir=src --home-dir=dest'.split(' '));
+
+    assert.deepEqual(readdirSync('dest'), ['foo']);
+  });
+
+  it('should ignore file passed in exclude', async () => {
+    mock({
+      'src': {
+        'foo': {
+          'file1.txt': 'file1'
+        },
+        'bar': {
+          'file2.txt': 'file2'
+        }
+      },
+      'dest': {}
+    });
+
+    await exec('apply --base-dir=src --home-dir=dest --exclude=foo'.split(' '));
+
+    assert.deepEqual(readdirSync('dest'), ['bar']);
+  });
+
+  it('should ignore several files passed in exclude', async () => {
+    mock({
+      'src': {
+        'foo': {
+          'file1.txt': 'file1'
+        },
+        'bar': {
+          'file2.txt': 'file2'
+        }
+      },
+      'dest': {}
+    });
+
+    await exec('apply --base-dir=src --home-dir=dest --exclude=foo --exclude=bar'.split(' '));
+
+    assert.deepEqual(readdirSync('dest'), []);
+  });
+
   it('should remove specific symlinks', async () => {
     mock({
       'src': {
