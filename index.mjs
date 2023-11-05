@@ -72,7 +72,7 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
         ${cmd} update         --base-dir=<path> --home-dir=<path>
         ${cmd} use <url>      --base-dir=<path> --home-dir=<path>
         ${cmd} install        --module-path=<path> --module-url=<url>
-      
+
       Commands
         apply     Create symlinks from <base-dir> to <home-dir>
         ls        List of created symlinks
@@ -335,14 +335,14 @@ function yellow(/**@type {string}*/str) {
 
 /**
  * @template {{_: string[]}} T
- * @param {string[]} argv 
+ * @param {string[]} argv
  * @returns {Partial<T>}
  */
 function parseArgv(/**@type {string[]}*/argv) {
   /**@type {T}*/
   const parsed = { _: [] };
   const toCamelCase = (/**@type {string}*/str) => {
-    return str.replace(/-([a-z])/g, (m, c) => c.toUpperCase());
+    return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
   }
 
   for (const arg of argv) {
