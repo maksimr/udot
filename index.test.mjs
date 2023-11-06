@@ -138,10 +138,10 @@ describe('main', () => {
     assert.deepEqual(readdirSync('dest'), []);
   });
 
-  it('should ignore files from .dotignore', async () => {
+  it('should ignore files from ignore file', async () => {
     mock({
       'src': {
-        '.dotignore': 'bootstrap.sh\nnode_modules\n.dotignore',
+        '.ignore': 'bootstrap.sh\nnode_modules\n.ignore',
         'bootstrap.sh': 'file2',
         'foo': {
           'file1.txt': 'file1'

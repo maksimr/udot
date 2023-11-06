@@ -43,7 +43,7 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
 
   baseDir = tildeExpansion(baseDir);
   homeDir = tildeExpansion(homeDir);
-  const DEFAULT_EXCLUDES_FILE = path.join(baseDir, '.dotignore');
+  const DEFAULT_EXCLUDES_FILE = path.join(baseDir, '.ignore');
 
   await contextProvider.run({
     dryRun: params.dryRun,
