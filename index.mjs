@@ -43,11 +43,13 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
 
   baseDir = tildeExpansion(baseDir);
   homeDir = tildeExpansion(homeDir);
+  const DEFAULT_EXCLUDES_FILE = path.join(baseDir, '.dotignore');
 
   await contextProvider.run({
     dryRun: params.dryRun,
     modulePath: params.modulePath,
-    exclude: [].concat(params.exclude || [])
+    exclude: [].concat(params.exclude || []),
+    excludesFile: params.excludesFile || DEFAULT_EXCLUDES_FILE
   }, async () => {
     if (command === 'apply') {
       await apply(baseDir, homeDir);
@@ -83,12 +85,13 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
         install   Install or upgrade "${cmd}" to the latest version
 
       Options
-        --base-dir     Source directory. By default "~/.dotfiles"
-        --home-dir     Destination directory. By default "~"
-        --module-path  Path to "${cmd}" module
-        --module-url   URL to "${cmd}" module
-        --dry-run      Don't make real modification, just print what will be done
-        --exclude      Exclude files or directories from processing
+        --base-dir       Source directory. By default "~/.dotfiles"
+        --home-dir       Destination directory. By default "~"
+        --module-path    Path to "${cmd}" module
+        --module-url     URL to "${cmd}" module
+        --dry-run        Don't make real modification, just print what will be done
+        --exclude        Exclude files or directories from processing
+        --excludes-file  Path to file with exclude patterns. By default "${DEFAULT_EXCLUDES_FILE}"
 
       ${process.version} ${process.platform} ${process.arch} ${process.env.SHELL}
     `))
@@ -114,7 +117,7 @@ async function apply(/**@type {string}*/baseDir, /**@type {string}*/homeDir) {
     await mutating(fs.promises.mkdir)(homeDir);
   }
 
-  const isIgnored = await getIgnoreFunction(baseDir);
+  const isIgnored = await getIgnoreFunction();
   await processDir(baseDir);
 
   async function processDir(/**@type {string}*/dir) {
@@ -147,7 +150,7 @@ async function ls(/**@type {string}*/baseDir, /**@type {string}*/homeDir) {
     return;
   }
 
-  const isIgnored = await getIgnoreFunction(baseDir);
+  const isIgnored = await getIgnoreFunction();
   await processDir(baseDir);
 
   async function processDir(/**@type {string}*/dir) {
@@ -262,8 +265,8 @@ async function pull(/**@type {string}*/cwd) {
   }
 }
 
-async function getIgnoreFunction(/**@type {string}*/baseDir) {
-  const ignoreFilePath = path.join(baseDir, '.dotignore');
+async function getIgnoreFunction() {
+  const ignoreFilePath = getCurrentContext().excludesFile;
   const ignorePatterns = await isExists(ignoreFilePath) ?
     (await fs.promises.readFile(ignoreFilePath, 'utf8'))
       .split('\n').map((line) => line.trim()).filter((line) => line !== '') :

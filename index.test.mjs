@@ -194,6 +194,26 @@ describe('main', () => {
     assert.deepEqual(readdirSync('dest'), []);
   });
 
+  it('should allow pass custom ignore file', async () => {
+    mock({
+      'src': {
+        '.exclude': 'bootstrap.sh\nnode_modules\n.exclude',
+        'bootstrap.sh': 'file2',
+        'foo': {
+          'file1.txt': 'file1'
+        },
+        'node_modules': {
+          'file2.txt': 'file2'
+        }
+      },
+      'dest': {}
+    });
+
+    await exec('apply --base-dir=src --home-dir=dest --excludes-file=./src/.exclude'.split(' '));
+
+    assert.deepEqual(readdirSync('dest'), ['foo']);
+  });
+
   it('should remove specific symlinks', async () => {
     mock({
       'src': {
