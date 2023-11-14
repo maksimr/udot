@@ -107,6 +107,7 @@ async function install(url = 'https://raw.github.com/maksimr/udot/main/index.mjs
   const modulePath = getCurrentContext().modulePath || (import.meta.url && fileURLToPath(import.meta.url))
 
   if (!modulePath) {
+    console.error('Cannot determine install path. Please specify --module-path option');
     return;
   }
 
