@@ -45,11 +45,15 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
   homeDir = tildeExpansion(homeDir);
   const DEFAULT_EXCLUDES_FILE = path.join(baseDir, '.ignore');
 
+  const last = (/**@type {string[]|string|undefined}*/arr) => {
+    return Array.isArray(arr) ? arr[arr.length - 1] : arr;
+  };
+
   await contextProvider.run({
-    dryRun: params.dryRun,
-    modulePath: params.modulePath,
+    dryRun: last(params.dryRun),
+    modulePath: last(params.modulePath),
     exclude: [].concat(params.exclude || []),
-    excludesFile: params.excludesFile || DEFAULT_EXCLUDES_FILE
+    excludesFile: last(params.excludesFile) || DEFAULT_EXCLUDES_FILE
   }, async () => {
     if (command === 'apply') {
       await apply(baseDir, homeDir);
@@ -100,7 +104,7 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
 }
 
 async function install(url = 'https://raw.github.com/maksimr/udot/main/index.mjs') {
-  const modulePath = (import.meta.url && fileURLToPath(import.meta.url)) || getCurrentContext().modulePath;
+  const modulePath = getCurrentContext().modulePath || (import.meta.url && fileURLToPath(import.meta.url))
 
   if (!modulePath) {
     return;
