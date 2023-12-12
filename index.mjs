@@ -53,6 +53,7 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
     dryRun: last(params.dryRun),
     modulePath: last(params.modulePath),
     exclude: [].concat(params.exclude || []),
+    force: last(params.force),
     excludesFile: last(params.excludesFile) || DEFAULT_EXCLUDES_FILE
   }, async () => {
     if (command === 'apply') {
@@ -96,6 +97,7 @@ export async function exec(/**@type {string[]}*/argv = process.argv.slice(2)) {
         --dry-run        Don't make real modification, just print what will be done
         --exclude        Exclude files or directories from processing
         --excludes-file  Path to file with exclude patterns. By default "${DEFAULT_EXCLUDES_FILE}"
+        --force          Force to overwrite existing files
 
       ${process.version} ${process.platform} ${process.arch} ${process.env.SHELL}
     `))
@@ -122,6 +124,7 @@ async function apply(/**@type {string}*/baseDir, /**@type {string}*/homeDir) {
     await mutating(fs.promises.mkdir)(homeDir);
   }
 
+  const force = getCurrentContext().force;
   const isIgnored = await getIgnoreFunction();
   await processDir(baseDir);
 
@@ -135,9 +138,11 @@ async function apply(/**@type {string}*/baseDir, /**@type {string}*/homeDir) {
 
         const source = path.join(dir, file.name);
         const target = path.join(homeDir, path.relative(baseDir, source));
-
-        if (file.isFile() && !(await isExists(target))) {
-          console.log(`${green('+')} ${target} -> ${source}`);
+        const isTargetExists = await isExists(target);
+        if (file.isFile() && (force || !isTargetExists)) {
+          if (force && isTargetExists) {
+            await mutating(fs.promises.unlink)(target);
+          }
           await mutating(fs.promises.symlink)(source, target);
         } else if (file.isDirectory()) {
           if (!(await isExists(target))) {

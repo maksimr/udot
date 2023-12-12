@@ -1,6 +1,6 @@
 import { afterEach, describe, it } from 'node:test';
 import assert from 'node:assert';
-import { readFileSync, readdirSync } from 'node:fs';
+import { lstatSync, readdirSync, readlinkSync } from 'node:fs';
 import mock from 'mock-fs';
 import { exec } from './index.mjs';
 
@@ -50,7 +50,7 @@ describe('main', () => {
 
     await exec('apply --base-dir=src --home-dir=dest'.split(' '));
 
-    assert.deepEqual(readFileSync('dest/file1.txt').toString(), 'destfile1');
+    assert.deepEqual(lstatSync('dest/file1.txt').isSymbolicLink(), false);
   });
 
   it('should remove created symlinks', async () => {
@@ -227,5 +227,20 @@ describe('main', () => {
     await exec('restore dest/file2.txt --base-dir=src --home-dir=dest'.split(' '));
 
     assert.deepEqual(readdirSync('dest'), ['file1.txt']);
+  });
+
+  it('should rewrite existed file if --force pacced', async () => {
+    mock({
+      'src': {
+        'file1.txt': 'file1'
+      },
+      'dest': {
+        'file1.txt': 'destfile1'
+      }
+    });
+
+    await exec('apply --force --base-dir=src --home-dir=dest'.split(' '));
+
+    assert.deepEqual(readlinkSync('dest/file1.txt'), 'src/file1.txt');
   });
 });
